@@ -4,7 +4,7 @@
     "type": "flarum-extension",
     "license": "proprietary",
     "require": {
-        "flarum/core": "^2.0.0",
+        "flarum/core": "^2.0.0-rc.8 || ^2.0.0",
         "ramon/point-system": "dev-main"
     },
     "support": {
