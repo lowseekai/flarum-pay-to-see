@@ -6,6 +6,7 @@ namespace Ziven\pay2see;
 
 use Flarum\Locale\TranslatorInterface;
 use Flarum\Post\Post;
+use Flarum\User\Guest;
 use Flarum\User\User;
 use Ziven\pay2see\Model\PaidDiscussion;
 
@@ -14,7 +15,7 @@ final class ProcessContent
     public static function transform(
         string $html,
         Post $post,
-        User $actor,
+        User|Guest $actor,
         TranslatorInterface $translator,
     ): string {
         $discussion = $post->discussion;
