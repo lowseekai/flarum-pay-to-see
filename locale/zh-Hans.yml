@@ -1,0 +1,53 @@
+pay-to-see:
+  lib:
+    ok: 确定
+    confirm: 确定
+    save: 保存
+    cancel: 取消
+  forum:
+    tag_no_permission_title: 付费内容
+    tag_no_permission: 所选标签无法使用付费内容
+    tag_has_permission: 允许使用付费内容功能
+    pay_to_see_content: 付费内容
+    pay_to_see_content_label: 插入付费内容
+    purchased_content: 已购买的内容
+    purchased_users: 购买用户
+    purchased_users_empty: 还没有用户购买
+    pay_to_see_owner_bypass: 付费内容 [作者可见]
+    pay_to_see_content_bypass: 付费内容 [权限设置可见]
+    toolbar_tooltip: 插入付费可见内容
+    set_pay_to_see_price: 设置付费内容金额
+    set_pay_to_see_price_success: 付费内容设置成功
+    modify_pay_to_see_price: 修改付费内容金额
+    remove_pay_to_see_price_success: 已移除付费内容设置
+    remove: 移除付费设置
+    need_pay2see_tag: 付费内容需要使用 [pay][/pay] 标签包裹
+    not_support_anonymous: 付费内容不支持匿名发布
+    purchase_success: 购买成功
+    purchase_confirmation: 购买付费内容
+    purchase_confirmation_text: "你确定要支付 {costText} 吗？"
+    purchase_button: 购买付费内容
+    purchase_unlocked_button: 付费内容已解锁
+    purchase_error_not_found: 无法购买付费内容
+    purchase_error_insufficient_fund: 积分不足
+    purchase_error_no_permission: 你没有权限购买付费内容
+    set_error_no_permission: 你没有权限使用付费内容
+    purchase_count: "{count} 人购买"
+    notifications:
+      notification_setting_some_one_purchase_content: 有人购买我的付费内容
+      discussion_purchased: "{username} 购买了你的付费内容"
+      discussion_purchased_cost: "向你支付 {cost}"
+  admin:
+    set_permission_tag: 标签权限设置
+    set_permission_tag_help: 留空表示所有标签都可以使用付费内容；填写标签 ID 时使用英文逗号分隔，例如 2,3。
+    error_need_one_tag: 请至少填写一个标签 ID
+    settings:
+      badge_icon: 帖子列表图标
+      badge_icon_desc: 输入 Font Awesome 图标名称，例如 fas fa-dollar-sign；留空则不显示图标。
+      allowed_tags: 允许使用的标签 ID
+      allowed_tags_help: 留空表示全部标签；多个标签 ID 使用英文逗号分隔。
+    permission:
+      allow_use_pay2see: 允许使用付费内容功能
+      allow_purchase_pay2see: 允许购买付费内容
+      allow_bypass_pay2see: 允许不支付直接查看付费内容
+      allow_set_pay2see: 允许为其他用户的讨论设置付费内容

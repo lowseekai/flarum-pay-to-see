@@ -1,0 +1,42 @@
+{
+    "name": "ziiven/flarum-pay-to-see",
+    "description": "A Flarum extension. Allow user to add pay to see content in the post",
+    "type": "flarum-extension",
+    "license": "proprietary",
+    "require": {
+        "flarum/core": "^2.0.0",
+        "ramon/point-system": "dev-main"
+    },
+    "support": {
+        "issues": "https://ziven.flarum.cloud/d/6-pay-to-see-fu-fei-ke-jian-nei-rong"
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/lowseekai/point-system.git",
+            "no-api": true
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "autoload": {
+        "psr-4": {
+            "Ziven\\pay2see\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Ziven"
+        }
+    ],
+    "extra": {
+        "flarum-extension": {
+            "title": "Ziven Pay To See",
+            "icon": {
+                "name": "fas fa-dollar-sign",
+                "backgroundColor": "#68238c",
+                "color": "#fff"
+            }
+        }
+    }
+}

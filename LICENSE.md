@@ -1,0 +1,5 @@
+PROPRIETARY SOFTWARE AND LICENSE.
+
+Copyright (c) 2022 Ziven
+
+ Customer acknowledges, and agrees, that the Service uses proprietary software (hereinafter “Software”) owned by Ziven, and the Customer is being granted an individual, non- exclusive, non-transferable license to use the Software subject to the terms and conditions of this Agreement. The Customer acknowledges, and agrees, that the Customer, its employees and agents, are expressly prohibited, directly or indirectly, from attempting to discover the source code, underlying algorithms, or technology of the Software; rent, lease, sell, assign, or transfer rights to the Software; modify or make derivative works based on the Software; or use the Software in any service bureau or timeshare capacity. The Customer acknowledges, and agrees, that Ziven is the exclusive owner throughout the world of the Software, including subparts, additions, extensions, versions, updates and copies, and all rights not expressly granted to the Customer are reserved by Ziven. Ziven also reserves the right to modify its software within its sole discretion at anytime.
