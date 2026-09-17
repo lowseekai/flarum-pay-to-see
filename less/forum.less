@@ -63,39 +63,35 @@
   }
 }
 
-.Pay2SeeComposerButton {
-  display: inline-flex;
-  align-items: center;
-  max-width: 100%;
+.ComposerBody-pay2see {
   margin-right: 0;
-  border-radius: var(--border-radius);
-  font-size: 85%;
-  font-weight: 600;
   line-height: inherit;
-  white-space: nowrap;
+  vertical-align: middle;
 
-  .Button-icon {
-    margin-right: 4px;
+  .Pay2SeeLabel {
+    display: inline-block;
+    padding: 0.1em 0.5em;
+    border-radius: var(--border-radius);
+    background: var(--body-bg);
+    border: 1px solid var(--primary-color);
+    color: var(--control-color);
+    font-size: 85%;
+    font-weight: 600;
+    line-height: inherit;
+    text-transform: none;
+    white-space: nowrap;
+
+    &.none {
+      background: transparent;
+      border: 1px dotted var(--muted-color);
+      color: var(--muted-color);
+    }
+
+    .icon {
+      margin-right: 2px;
+    }
   }
 }
-
-.Pay2SeeButton--green {background-color:#b4f1af;color:#33722d;padding-left:20px;padding-right:20px;}
-.Pay2SeeButton--green:focus {background-color:#b4f1af;color:#33722d}
-.Pay2SeeButton--green:hover {background-color:#a0ed99;}
-.Pay2SeeButton--green:active {background-color:#8be984;}
-.Pay2SeeButton--green:disabled {background-color:#b4f1af;}
-
-.Pay2SeeButton--yellow {background-color:#fbbc04;color:#fff;padding-left:20px;padding-right:20px;}
-.Pay2SeeButton--yellow:focus {background-color:#fbbc04;color:#fff}
-.Pay2SeeButton--yellow:hover {background-color:#e2a904;}
-.Pay2SeeButton--yellow:active {background-color:#c99603;}
-.Pay2SeeButton--yellow:disabled {background-color:#fbbc04;}
-
-.Pay2SeeButton--gray {background-color:#ddd;color:var(--button-color);padding-left:20px;padding-right:20px;}
-.Pay2SeeButton--gray:focus {background-color:#ddd;color:var(--button-color)}
-.Pay2SeeButton--gray:hover {background-color:#c6c6c6;}
-.Pay2SeeButton--gray:active {background-color:#c6c6c6;}
-.Pay2SeeButton--gray:disabled {background-color:#eee;}
 
 @media (max-width: 767px) {
   .Composer,
@@ -109,10 +105,5 @@
         vertical-align: middle;
       }
     }
-  }
-
-  .Pay2SeeComposerButton {
-    padding-left: 10px;
-    padding-right: 10px;
   }
 }

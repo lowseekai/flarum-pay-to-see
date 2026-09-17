@@ -3,6 +3,7 @@ import app from 'flarum/forum/app';
 import Button from 'flarum/common/components/Button';
 import FormModal from 'flarum/common/components/FormModal';
 import Modal from 'flarum/common/components/Modal';
+import Icon from 'flarum/common/components/Icon';
 import Notification from 'flarum/forum/components/Notification';
 import TextEditorButton from 'flarum/common/components/TextEditorButton';
 import Discussion from 'flarum/common/models/Discussion';
@@ -299,10 +300,10 @@ app.initializers.add('ziiven-pay-to-see', () => {
 
     items.add(
       'pay2see',
-      <Button
+      <button
         id="pay2seeButton"
-        className={`Button Button-icon Pay2SeeComposerButton ${hasAmount ? 'Pay2SeeButton--green' : 'Pay2SeeButton--gray'}`}
-        icon="fas fa-lock"
+        type="button"
+        className="Button Button--ua-reset ComposerBody-pay2see"
         onclick={() =>
           app.modal.show(PayToSeePriceModal, {
             cost: amount,
@@ -313,8 +314,11 @@ app.initializers.add('ziiven-pay-to-see', () => {
           })
         }
       >
-        {hasAmount ? costLabel(amount) : app.translator.trans('pay-to-see.forum.set_pay_to_see_price')}
-      </Button>,
+        <span className={hasAmount ? 'Pay2SeeLabel' : 'Pay2SeeLabel none'}>
+          <Icon name="fas fa-lock" />
+          {app.translator.trans('pay-to-see.forum.pay_to_see_content')}
+        </span>
+      </button>,
       2
     );
   });
