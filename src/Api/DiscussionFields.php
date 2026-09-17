@@ -32,6 +32,14 @@ final class DiscussionFields
                 ->nullable(),
             Schema\Integer::make('pay2seeCount')
                 ->property('pay2see_count'),
+            // This is a create-only request field. The saving listener validates
+            // it and stores the normalized value in pay2see_cost.
+            Schema\Integer::make('pay2seeAmount')
+                ->writableOnCreate()
+                ->min(1)
+                ->set(static function (Discussion $discussion, mixed $value): void {
+                    // Do not map this transient API field to a database column.
+                }),
         ];
     }
 }
