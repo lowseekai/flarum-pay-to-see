@@ -19,8 +19,63 @@ function costLabel(cost) {
   return `${Number(cost).toLocaleString()} ${currencyShort()}`;
 }
 
+function amountLabel(amount) {
+  return `${Number(amount).toFixed(2)} ${currencyShort()}`;
+}
+
 function showError(message) {
   app.alerts.show({ type: 'error' }, message);
+}
+
+function decoratePayToSeePreview(root) {
+  if (!root || !root.ownerDocument) return;
+
+  const document = root.ownerDocument;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const textNodes = [];
+  let node;
+
+  while ((node = walker.nextNode())) {
+    if (node.parentElement?.closest('.PayToSeePreview')) continue;
+    if (/\[pay\][\s\S]*?\[\/pay\]/i.test(node.nodeValue || '')) {
+      textNodes.push(node);
+    }
+  }
+
+  textNodes.forEach((textNode) => {
+    const text = textNode.nodeValue || '';
+    const fragment = document.createDocumentFragment();
+    let cursor = 0;
+    let match;
+    const pattern = /\[pay\]([\s\S]*?)\[\/pay\]/gi;
+
+    while ((match = pattern.exec(text))) {
+      if (match.index > cursor) {
+        fragment.appendChild(document.createTextNode(text.slice(cursor, match.index)));
+      }
+
+      const block = document.createElement('div');
+      block.className = 'pay2see_gray PayToSeePreview';
+
+      const header = document.createElement('div');
+      header.className = 'pay2see_header_gray';
+      header.textContent = '付费内容预览';
+
+      const content = document.createElement('div');
+      content.className = 'PayToSeePreview-content';
+      content.textContent = match[1];
+
+      block.append(header, content);
+      fragment.appendChild(block);
+      cursor = pattern.lastIndex;
+    }
+
+    if (cursor < text.length) {
+      fragment.appendChild(document.createTextNode(text.slice(cursor)));
+    }
+
+    textNode.parentNode?.replaceChild(fragment, textNode);
+  });
 }
 
 class PayToSeePriceModal extends FormModal {
@@ -317,6 +372,7 @@ app.initializers.add('ziiven-pay-to-see', () => {
         <span className={hasAmount ? 'Pay2SeeLabel' : 'Pay2SeeLabel none'}>
           <Icon name="fas fa-lock" />
           {app.translator.trans('pay-to-see.forum.pay_to_see_content')}
+          {hasAmount && <span className="Pay2SeeAmount">{amountLabel(amount)}</span>}
         </span>
       </button>,
       2
@@ -329,6 +385,15 @@ app.initializers.add('ziiven-pay-to-see', () => {
       data.attributes = data.attributes || {};
       data.attributes.pay2seeAmount = amount;
     }
+  });
+
+  extendComponent('flarum/forum/components/ComposerPostPreview', 'oncreate', function (vnode) {
+    this.pay2seePreviewInterval = setInterval(() => decoratePayToSeePreview(vnode.dom), 80);
+    decoratePayToSeePreview(vnode.dom);
+  });
+
+  extendComponent('flarum/forum/components/ComposerPostPreview', 'onremove', function () {
+    clearInterval(this.pay2seePreviewInterval);
   });
 
   extendComponent('flarum/forum/components/DiscussionPage', 'sidebarItems', function (items) {
