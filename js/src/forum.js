@@ -370,8 +370,11 @@ app.initializers.add('ziiven-pay-to-see', () => {
 
   // Flarum 2 renders the split preview inside TextEditor.
   // Watch the editor root because the preview node is created lazily.
-  extendComponent('flarum/common/components/TextEditor', 'oncreate', function (vnode) {
-    const root = vnode.dom;
+  extendComponent('flarum/common/components/TextEditor', 'oncreate', function () {
+    const root = this.$('.TextEditor-editorContainer')[0];
+
+    if (!root) return;
+
     const decorate = () => {
       const preview = root.matches('.Split-view.Post-body')
         ? root
