@@ -146,12 +146,27 @@ class PayToSeePriceModal extends Modal {
     }
 
     this.loading = true;
-    Promise.resolve(this.attrs.onsubmit(cost))
-      .then(() => this.hide())
-      .catch(() => {
-        this.loading = false;
-        m.redraw();
-      });
+
+    try {
+      const result = this.attrs.onsubmit(cost);
+
+      // Composer amount changes are local and synchronous; close immediately
+      // so the header can redraw with the selected amount.
+      if (!result || typeof result.then !== 'function') {
+        this.hide();
+        return;
+      }
+
+      result
+        .then(() => this.hide())
+        .catch(() => {
+          this.loading = false;
+          m.redraw();
+        });
+    } catch (error) {
+      this.loading = false;
+      m.redraw();
+    }
   }
 }
 
