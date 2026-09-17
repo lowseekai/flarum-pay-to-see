@@ -369,25 +369,19 @@ app.initializers.add('ziiven-pay-to-see', () => {
   });
 
   // Flarum 2 renders the split preview inside TextEditor.
-  // Watch the editor root because the preview node is created lazily.
+  // The preview node is created lazily and is not available on every
+  // TextEditor lifecycle callback, so observe the active page container.
   extendComponent('flarum/common/components/TextEditor', 'oncreate', function () {
-    const root = this.$('.TextEditor-editorContainer')[0];
-
-    if (!root) return;
-
     const decorate = () => {
-      const preview = root.matches('.Split-view.Post-body')
-        ? root
-        : root.querySelector('.Split-view.Post-body');
-
-      if (preview) decoratePayToSeePreview(preview);
+      const previews = document.querySelectorAll('.Split-view.Post-body[aria-label="Preview"]');
+      previews.forEach((preview) => decoratePayToSeePreview(preview));
     };
 
     decorate();
 
     if (typeof MutationObserver !== 'undefined') {
       this.pay2seePreviewObserver = new MutationObserver(decorate);
-      this.pay2seePreviewObserver.observe(root, {
+      this.pay2seePreviewObserver.observe(document.body, {
         subtree: true,
         childList: true,
         characterData: true,
