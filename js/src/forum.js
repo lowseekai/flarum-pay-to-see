@@ -294,14 +294,18 @@ app.initializers.add('ziiven-pay-to-see', () => {
   extendComponent('flarum/forum/components/DiscussionComposer', 'headerItems', function (items) {
     if (!app.forum.attribute('allowUsePay2See')) return;
 
+    const amount = this.composer.fields.pay2seeAmount();
+    const hasAmount = amount !== null && amount !== undefined && Number(amount) > 0;
+
     items.add(
       'pay2see',
       <Button
-        className="Button Button--link"
+        id="pay2seeButton"
+        className={`Button Button-icon Pay2SeeComposerButton ${hasAmount ? 'Pay2SeeButton--green' : 'Pay2SeeButton--gray'}`}
         icon="fas fa-lock"
         onclick={() =>
           app.modal.show(PayToSeePriceModal, {
-            cost: this.composer.fields.pay2seeAmount(),
+            cost: amount,
             onsubmit: (cost) => {
               this.composer.fields.pay2seeAmount(cost);
               m.redraw();
@@ -309,9 +313,9 @@ app.initializers.add('ziiven-pay-to-see', () => {
           })
         }
       >
-        {this.composer.fields.pay2seeAmount() ? costLabel(this.composer.fields.pay2seeAmount()) : app.translator.trans('pay-to-see.forum.set_pay_to_see_price')}
+        {hasAmount ? costLabel(amount) : app.translator.trans('pay-to-see.forum.set_pay_to_see_price')}
       </Button>,
-      5
+      2
     );
   });
 
