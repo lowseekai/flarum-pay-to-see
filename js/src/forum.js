@@ -3,7 +3,6 @@ import app from 'flarum/forum/app';
 import Button from 'flarum/common/components/Button';
 import FormModal from 'flarum/common/components/FormModal';
 import Modal from 'flarum/common/components/Modal';
-import Icon from 'flarum/common/components/Icon';
 import Notification from 'flarum/forum/components/Notification';
 import TextEditorButton from 'flarum/common/components/TextEditorButton';
 import Discussion from 'flarum/common/models/Discussion';
@@ -78,7 +77,7 @@ function decoratePayToSeePreview(root) {
   });
 }
 
-class PayToSeePriceModal extends FormModal {
+class PayToSeePriceModal extends Modal {
   oninit(vnode) {
     super.oninit(vnode);
     this.cost = Stream(this.attrs.cost === null || this.attrs.cost === undefined ? '' : String(this.attrs.cost));
@@ -101,13 +100,21 @@ class PayToSeePriceModal extends FormModal {
       <div className="Modal-body">
         <div className="Form-group">
           <label>{app.translator.trans('pay-to-see.forum.set_pay_to_see_price')}</label>
-          <input className="FormControl" type="number" min="1" step="1" required bidi={this.cost} />
+          <input
+            className="FormControl"
+            type="number"
+            min="1"
+            step="1"
+            required
+            value={this.cost()}
+            oninput={(event) => this.cost(event.target.value)}
+          />
           <p className="helpText">
             <i className={currencyIcon()} aria-hidden="true" /> {currencyShort()}
           </p>
         </div>
         <div className="Form-group Form-controls">
-          <Button className="Button Button--primary" type="submit" loading={this.loading}>
+          <Button className="Button Button--primary" type="button" loading={this.loading} onclick={() => this.save()}>
             {app.translator.trans('pay-to-see.lib.save')}
           </Button>
           {this.attrs.canRemove && (
@@ -115,12 +122,7 @@ class PayToSeePriceModal extends FormModal {
               className="Button Button--danger"
               type="button"
               disabled={this.loading}
-              onclick={() => {
-                this.loading = true;
-                Promise.resolve(this.attrs.onsubmit(-1))
-                  .then(() => this.hide())
-                  .catch(() => this.loaded());
-              }}
+              onclick={() => this.save(-1)}
             >
               {app.translator.trans('pay-to-see.forum.remove')}
             </Button>
@@ -133,9 +135,8 @@ class PayToSeePriceModal extends FormModal {
     );
   }
 
-  onsubmit(event) {
-    event.preventDefault();
-    const cost = Number(this.cost());
+  save(forcedCost = null) {
+    const cost = forcedCost === null ? Number(this.cost()) : forcedCost;
 
     if (!Number.isInteger(cost) || (cost < 1 && !(cost === -1 && this.attrs.canRemove))) {
       showError(app.translator.trans('pay-to-see.forum.purchase_error_not_found'));
@@ -145,7 +146,10 @@ class PayToSeePriceModal extends FormModal {
     this.loading = true;
     Promise.resolve(this.attrs.onsubmit(cost))
       .then(() => this.hide())
-      .catch(() => this.loaded());
+      .catch(() => {
+        this.loading = false;
+        m.redraw();
+      });
   }
 }
 
@@ -369,10 +373,15 @@ app.initializers.add('ziiven-pay-to-see', () => {
           })
         }
       >
-        <span className={hasAmount ? 'Pay2SeeLabel' : 'Pay2SeeLabel none'}>
-          <Icon name="fas fa-lock" />
+        <span className="TagLabel untagged Pay2SeeTagLabel">
+          {hasAmount && <span id="payAmountSet">✅</span>}
+          {' '}
           {app.translator.trans('pay-to-see.forum.pay_to_see_content')}
-          {hasAmount && <span className="Pay2SeeAmount">{amountLabel(amount)}</span>}
+          {hasAmount && (
+            <span id="payAmount" className="Pay2SeeAmount">
+              {amountLabel(amount)}
+            </span>
+          )}
         </span>
       </button>,
       2
@@ -388,12 +397,15 @@ app.initializers.add('ziiven-pay-to-see', () => {
   });
 
   extendComponent('flarum/forum/components/ComposerPostPreview', 'oncreate', function (vnode) {
-    this.pay2seePreviewInterval = setInterval(() => decoratePayToSeePreview(vnode.dom), 80);
+    decoratePayToSeePreview(vnode.dom);
+  });
+
+  extendComponent('flarum/forum/components/ComposerPostPreview', 'onupdate', function (vnode) {
     decoratePayToSeePreview(vnode.dom);
   });
 
   extendComponent('flarum/forum/components/ComposerPostPreview', 'onremove', function () {
-    clearInterval(this.pay2seePreviewInterval);
+    this.pay2seePreviewInterval && clearInterval(this.pay2seePreviewInterval);
   });
 
   extendComponent('flarum/forum/components/DiscussionPage', 'sidebarItems', function (items) {
