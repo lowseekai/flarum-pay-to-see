@@ -79,27 +79,6 @@ function decoratePayToSeePreview(root) {
   });
 }
 
-function updatePayToSeePreview(textEditor) {
-  const composer = textEditor?.attrs?.composer;
-  const editor = textEditor?.$?.('.TextEditor-editorContainer')?.[0];
-  const preview = editor?.querySelector('.Split-view');
-
-  if (!preview || !composer?.isSplitView) return;
-
-  const content = composer.fields.content() || '';
-  if (
-    preview.dataset.pay2seeContent === content &&
-    (!/\[pay\][\s\S]*?\[\/pay\]/i.test(content) || preview.querySelector('.PayToSeePreview'))
-  ) {
-    return;
-  }
-
-  preview.classList.remove('hidden');
-  s9e.TextFormatter.preview(content, preview);
-  decoratePayToSeePreview(preview);
-  preview.dataset.pay2seeContent = content;
-}
-
 class PayToSeePriceModal extends Modal {
   oninit(vnode) {
     super.oninit(vnode);
@@ -374,27 +353,25 @@ app.initializers.add('ziiven-pay-to-see', () => {
     this.composer.fields.pay2seeAmount = this.composer.fields.pay2seeAmount || Stream(null);
   });
 
-  extendComponent('flarum/common/components/TextEditor', 'oncreate', function () {
-    const syncPreview = () => updatePayToSeePreview(this);
-    const editor = this.$('.TextEditor-editorContainer')[0];
+  // Flarum 2 renders the preview in ComposerPostPreview, outside TextEditor.
+  // Decorate that component after its formatter output is written.
+  extendComponent('flarum/forum/components/ComposerPostPreview', 'oncreate', function (vnode) {
+    const root = vnode.dom;
+    const decorate = () => decoratePayToSeePreview(root);
 
-    if (editor && typeof MutationObserver !== 'undefined') {
-      this.pay2seePreviewObserver = new MutationObserver(syncPreview);
-      this.pay2seePreviewObserver.observe(editor, {
+    decorate();
+
+    if (typeof MutationObserver !== 'undefined') {
+      this.pay2seePreviewObserver = new MutationObserver(decorate);
+      this.pay2seePreviewObserver.observe(root, {
         subtree: true,
         childList: true,
         characterData: true,
       });
     }
-
-    syncPreview();
   });
 
-  extendComponent('flarum/common/components/TextEditor', 'onupdate', function () {
-    requestAnimationFrame(() => updatePayToSeePreview(this));
-  });
-
-  extendComponent('flarum/common/components/TextEditor', 'onremove', function () {
+  extendComponent('flarum/forum/components/ComposerPostPreview', 'onremove', function () {
     this.pay2seePreviewObserver?.disconnect();
   });
 
@@ -422,10 +399,13 @@ app.initializers.add('ziiven-pay-to-see', () => {
       >
         <span className="TagLabel untagged Pay2SeeTagLabel">
           {hasAmount && <span id="payAmountSet">✅</span>}
-          {' '}
-          {app.translator.trans('pay-to-see.forum.pay_to_see_content')}
+          <span className="Pay2SeeLabelText">
+            {' '}
+            {app.translator.trans('pay-to-see.forum.pay_to_see_content')}
+          </span>
           {hasAmount && (
             <span id="payAmount" className="Pay2SeeAmount">
+              {' '}
               {amountLabel(amount)}
             </span>
           )}
