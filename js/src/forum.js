@@ -325,7 +325,10 @@ app.initializers.add('ziiven-pay-to-see', () => {
 
   extendComponent('flarum/forum/components/DiscussionComposer', 'data', function (data) {
     const amount = this.composer.fields.pay2seeAmount?.();
-    if (amount !== null && amount !== undefined) data.pay2seeAmount = amount;
+    if (amount !== null && amount !== undefined) {
+      data.attributes = data.attributes || {};
+      data.attributes.pay2seeAmount = amount;
+    }
   });
 
   extendComponent('flarum/forum/components/DiscussionPage', 'sidebarItems', function (items) {
