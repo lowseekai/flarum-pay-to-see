@@ -1,3 +1,5 @@
+/* global s9e */
+
 import Extend from 'flarum/common/extenders';
 import app from 'flarum/forum/app';
 import Button from 'flarum/common/components/Button';
@@ -75,6 +77,27 @@ function decoratePayToSeePreview(root) {
 
     textNode.parentNode?.replaceChild(fragment, textNode);
   });
+}
+
+function updatePayToSeePreview(textEditor) {
+  const composer = textEditor?.attrs?.composer;
+  const editor = textEditor?.$?.('.TextEditor-editorContainer')?.[0];
+  const preview = editor?.querySelector('.Split-view');
+
+  if (!preview || !composer?.isSplitView) return;
+
+  const content = composer.fields.content() || '';
+  if (
+    preview.dataset.pay2seeContent === content &&
+    (!/\[pay\][\s\S]*?\[\/pay\]/i.test(content) || preview.querySelector('.PayToSeePreview'))
+  ) {
+    return;
+  }
+
+  preview.classList.remove('hidden');
+  s9e.TextFormatter.preview(content, preview);
+  decoratePayToSeePreview(preview);
+  preview.dataset.pay2seeContent = content;
 }
 
 class PayToSeePriceModal extends Modal {
@@ -351,6 +374,30 @@ app.initializers.add('ziiven-pay-to-see', () => {
     this.composer.fields.pay2seeAmount = this.composer.fields.pay2seeAmount || Stream(null);
   });
 
+  extendComponent('flarum/common/components/TextEditor', 'oncreate', function () {
+    const syncPreview = () => updatePayToSeePreview(this);
+    const editor = this.$('.TextEditor-editorContainer')[0];
+
+    if (editor && typeof MutationObserver !== 'undefined') {
+      this.pay2seePreviewObserver = new MutationObserver(syncPreview);
+      this.pay2seePreviewObserver.observe(editor, {
+        subtree: true,
+        childList: true,
+        characterData: true,
+      });
+    }
+
+    syncPreview();
+  });
+
+  extendComponent('flarum/common/components/TextEditor', 'onupdate', function () {
+    requestAnimationFrame(() => updatePayToSeePreview(this));
+  });
+
+  extendComponent('flarum/common/components/TextEditor', 'onremove', function () {
+    this.pay2seePreviewObserver?.disconnect();
+  });
+
   extendComponent('flarum/forum/components/DiscussionComposer', 'headerItems', function (items) {
     if (!app.forum.attribute('allowUsePay2See')) return;
 
@@ -394,18 +441,6 @@ app.initializers.add('ziiven-pay-to-see', () => {
       data.attributes = data.attributes || {};
       data.attributes.pay2seeAmount = amount;
     }
-  });
-
-  extendComponent('flarum/forum/components/ComposerPostPreview', 'oncreate', function (vnode) {
-    decoratePayToSeePreview(vnode.dom);
-  });
-
-  extendComponent('flarum/forum/components/ComposerPostPreview', 'onupdate', function (vnode) {
-    decoratePayToSeePreview(vnode.dom);
-  });
-
-  extendComponent('flarum/forum/components/ComposerPostPreview', 'onremove', function () {
-    this.pay2seePreviewInterval && clearInterval(this.pay2seePreviewInterval);
   });
 
   extendComponent('flarum/forum/components/DiscussionPage', 'sidebarItems', function (items) {
