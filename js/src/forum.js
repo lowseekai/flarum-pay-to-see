@@ -368,11 +368,17 @@ app.initializers.add('ziiven-pay-to-see', () => {
     this.composer.fields.pay2seeAmount = this.composer.fields.pay2seeAmount || Stream(null);
   });
 
-  // Flarum 2 renders the preview in ComposerPostPreview, outside TextEditor.
-  // Decorate that component after its formatter output is written.
-  extendComponent('flarum/forum/components/ComposerPostPreview', 'oncreate', function (vnode) {
+  // Flarum 2 renders the split preview inside TextEditor.
+  // Watch the editor root because the preview node is created lazily.
+  extendComponent('flarum/common/components/TextEditor', 'oncreate', function (vnode) {
     const root = vnode.dom;
-    const decorate = () => decoratePayToSeePreview(root);
+    const decorate = () => {
+      const preview = root.matches('.Split-view.Post-body')
+        ? root
+        : root.querySelector('.Split-view.Post-body');
+
+      if (preview) decoratePayToSeePreview(preview);
+    };
 
     decorate();
 
@@ -386,7 +392,7 @@ app.initializers.add('ziiven-pay-to-see', () => {
     }
   });
 
-  extendComponent('flarum/forum/components/ComposerPostPreview', 'onremove', function () {
+  extendComponent('flarum/common/components/TextEditor', 'onremove', function () {
     this.pay2seePreviewObserver?.disconnect();
   });
 
