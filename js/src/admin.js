@@ -1,7 +1,8 @@
 import app from 'flarum/admin/app';
 
-app.registry
-  .for('ziiven-pay-to-see')
+app.initializers.add('ziiven-pay-to-see-admin', () => {
+  app.registry
+    .for('ziiven-pay-to-see')
     .registerSetting({
       setting: 'pay2see.pay2seeContentBadge',
       type: 'text',
@@ -45,4 +46,5 @@ app.registry
         permission: 'pay2see.allowSetPay2See',
       },
       'moderate'
-  );
+    );
+});
