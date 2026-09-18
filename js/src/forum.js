@@ -236,6 +236,7 @@ class PayToSeeVisualEditorDriver extends BasicEditorDriver {
     this.visual.classList.toggle('Pay2SeeVisualEditor--active', hasPayContent);
     this.el.classList.toggle('Composer-flexible', !hasPayContent);
     this.visual.classList.toggle('Composer-flexible', hasPayContent);
+    this.syncEditorWrappers(hasPayContent);
 
     // Flarum sizes every `.Composer-flexible` node in the composer. Only the
     // currently visible editor should keep that class, otherwise hidden editor
@@ -245,6 +246,14 @@ class PayToSeeVisualEditorDriver extends BasicEditorDriver {
     } else {
       this.visual.style.height = '';
     }
+  }
+
+  syncEditorWrappers(hasPayContent) {
+    const visualWrapper = this.visual.closest('.ComposerBody-mentionsWrapper');
+    const sourceWrapper = this.el.closest('.ComposerBody-mentionsWrapper');
+
+    visualWrapper?.classList.toggle('Pay2SeeVisualEditor-wrapper--inactive', !hasPayContent);
+    sourceWrapper?.classList.toggle('Pay2SeeVisualEditor-wrapper--inactive', hasPayContent);
   }
 
   handlePlainTextPaste(event) {
