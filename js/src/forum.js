@@ -436,8 +436,10 @@ app.initializers.add('ziiven-pay-to-see', () => {
   extendComponent('flarum/forum/components/DiscussionComposer', 'data', function (data) {
     const amount = this.composer.fields.pay2seeAmount?.();
     if (amount !== null && amount !== undefined) {
-      data.attributes = data.attributes || {};
-      data.attributes.pay2seeAmount = amount;
+      // DiscussionComposer.data() already returns the JSON:API attributes
+      // object. Adding an `attributes` wrapper here produces an invalid
+      // nested payload in Flarum 2 and causes discussion creation to fail.
+      data.pay2seeAmount = amount;
     }
   });
 
