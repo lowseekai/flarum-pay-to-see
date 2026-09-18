@@ -127,7 +127,7 @@ class PayToSeeVisualEditorDriver extends BasicEditorDriver {
     this.handleVisualKeydown = this.handleVisualKeydown.bind(this);
 
     this.visual = document.createElement('div');
-    this.visual.className = 'FormControl Composer-flexible TextEditor-editor Pay2SeeVisualEditor';
+    this.visual.className = 'FormControl TextEditor-editor Pay2SeeVisualEditor';
     this.visual.setAttribute('role', 'textbox');
     this.visual.setAttribute('aria-multiline', 'true');
     this.visual.addEventListener('keydown', this.handleVisualKeydown);
@@ -234,6 +234,17 @@ class PayToSeeVisualEditorDriver extends BasicEditorDriver {
     const hasPayContent = parts.some((part) => part.type === 'pay');
     this.el.classList.toggle('Pay2SeeVisualEditor-source--hidden', hasPayContent);
     this.visual.classList.toggle('Pay2SeeVisualEditor--active', hasPayContent);
+    this.el.classList.toggle('Composer-flexible', !hasPayContent);
+    this.visual.classList.toggle('Composer-flexible', hasPayContent);
+
+    // Flarum sizes every `.Composer-flexible` node in the composer. Only the
+    // currently visible editor should keep that class, otherwise hidden editor
+    // nodes can receive stale inline heights and poison the next calculation.
+    if (hasPayContent) {
+      this.el.style.height = '';
+    } else {
+      this.visual.style.height = '';
+    }
   }
 
   handlePlainTextPaste(event) {
