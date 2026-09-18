@@ -9,6 +9,7 @@ pay-to-see:
     tag_no_permission: 所选标签无法使用付费内容
     tag_has_permission: 允许使用付费内容功能
     pay_to_see_content: 付费内容
+    pay_to_see_badge: 付费内容
     pay_to_see_content_label: 插入付费内容
     purchased_content: 已购买的内容
     purchased_users: 购买用户
@@ -27,6 +28,7 @@ pay-to-see:
     purchase_confirmation: 购买付费内容
     purchase_confirmation_text: "你确定要支付 {costText} 吗？"
     purchase_button: 购买付费内容
+    purchase_inline_button: "支付 {cost} 积分购买"
     purchase_unlocked_button: 付费内容已解锁
     purchase_error_not_found: 无法购买付费内容
     purchase_error_insufficient_fund: 积分不足
@@ -36,16 +38,16 @@ pay-to-see:
     notifications:
       notification_setting_some_one_purchase_content: 有人购买我的付费内容
       discussion_purchased: "{username} 购买了你的付费内容"
-      discussion_purchased_cost: "向你支付 {cost}"
+      discussion_purchased_cost: "向你支付了 {cost}"
   admin:
     set_permission_tag: 标签权限设置
     set_permission_tag_help: 留空表示所有标签都可以使用付费内容；填写标签 ID 时使用英文逗号分隔，例如 2,3。
     error_need_one_tag: 请至少填写一个标签 ID
     settings:
       badge_icon: 帖子列表图标
-      badge_icon_desc: 输入 Font Awesome 图标名称，例如 fas fa-dollar-sign；留空则不显示图标。
+      badge_icon_desc: 输入 Font Awesome 图标名称，例如 fas fa-dollar-sign；留空则使用默认图标。
       allowed_tags: 允许使用的标签 ID
-      allowed_tags_help: 留空表示全部标签；多个标签 ID 使用英文逗号分隔。
+      allowed_tags_help: 留空表示允许所有标签；多个标签 ID 使用英文逗号分隔。
     permission:
       allow_use_pay2see: 允许使用付费内容功能
       allow_purchase_pay2see: 允许购买付费内容

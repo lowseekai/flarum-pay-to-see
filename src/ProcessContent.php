@@ -38,7 +38,13 @@ final class ProcessContent
         if (! $isPaid && ! $isOwner && ! $canBypass) {
             $replacement = '<blockquote style="text-align:center;padding:30px"><div><p>'
                 .e($translator->trans('pay-to-see.forum.pay_to_see_content'))
-                .'</p></div></blockquote>';
+                .'</p><div class="PayToSeePurchaseActions"><button type="button"'
+                .' class="Button Button--primary PayToSeePurchaseButton"'
+                .' data-discussion-id="'.$discussionId.'" data-cost="'.(int) $cost.'">'
+                .'<i class="icon fas fa-coins Button-icon" aria-hidden="true"></i>'
+                .'<span class="PayToSeePurchaseButton-label">'
+                .e($translator->trans('pay-to-see.forum.purchase_inline_button', ['cost' => (int) $cost]))
+                .'</span></button></div></div></blockquote>';
 
             return self::replaceContent($html, '[pay]', '[/pay]', $replacement);
         }

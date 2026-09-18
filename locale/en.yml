@@ -9,6 +9,7 @@ pay-to-see:
     tag_no_permission: You can't use pay to see on selected tags
     tag_has_permission: Allow pay to see content
     pay_to_see_content: Pay To See Content
+    pay_to_see_badge: Paid content
     pay_to_see_content_label: Pay To See Content
     purchased_content: Purchased Content
     purchased_users: Purchased Users
@@ -27,6 +28,7 @@ pay-to-see:
     purchase_confirmation: Purchase Content
     purchase_confirmation_text: "Are you sure to pay {costText} ?"
     purchase_button: Purchase Content
+    purchase_inline_button: "Pay {cost} points to unlock"
     purchase_unlocked_button: Content Unlocked
     purchase_error_not_found: Cannot Purchase Content
     purchase_error_insufficient_fund: Insufficient Fund

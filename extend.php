@@ -36,6 +36,7 @@ $extend = [
         ->fields(ForumFields::class),
     (new Extend\Settings())
         ->default('pay2see.pay2seeAllowTags', [])
+        ->default('pay2see.pay2seeContentBadge', 'fas fa-dollar-sign')
         ->serializeToForum('pay2seeAllowTags', 'pay2see.pay2seeAllowTags')
         ->serializeToForum('pay2seeContentBadge', 'pay2see.pay2seeContentBadge', 'strval'),
     (new Extend\Notification())

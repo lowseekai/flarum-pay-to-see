@@ -7,6 +7,7 @@ import FormModal from 'flarum/common/components/FormModal';
 import Modal from 'flarum/common/components/Modal';
 import Notification from 'flarum/forum/components/Notification';
 import TextEditorButton from 'flarum/common/components/TextEditorButton';
+import Badge from 'flarum/common/components/Badge';
 import BasicEditorDriver from 'flarum/common/utils/BasicEditorDriver';
 import Discussion from 'flarum/common/models/Discussion';
 import Post from 'flarum/common/models/Post';
@@ -774,12 +775,44 @@ function purchaseDiscussion(discussion) {
     .then(() => {
       discussion.pushAttributes({ isPaid: true });
       app.alerts.show({ type: 'success' }, app.translator.trans('pay-to-see.forum.purchase_success'));
+      window.setTimeout(() => window.location.reload(), 150);
     })
     .catch((error) => {
       const detail = error?.response?.errors?.[0]?.detail;
       showError(detail || app.translator.trans('pay-to-see.forum.purchase_error_insufficient_fund'));
       throw error;
     });
+}
+
+function openInlinePurchase(discussion, cost) {
+  if (!discussion || !cost) {
+    showError(app.translator.trans('pay-to-see.forum.purchase_error_not_found'));
+    return;
+  }
+
+  if (!app.session.user) {
+    app.modal.show(() => import('flarum/forum/components/LogInModal'));
+    return;
+  }
+
+  app.modal.show(PayToSeePurchaseModal, {
+    cost,
+    onsubmit: () => purchaseDiscussion(discussion),
+  });
+}
+
+function handleInlinePurchaseClick(event) {
+  const button = event.target.closest?.('.PayToSeePurchaseButton');
+  if (!button) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const discussionId = button.dataset.discussionId;
+  const cost = Number(button.dataset.cost);
+  const discussion = discussionId ? app.store.getById('discussions', discussionId) : null;
+
+  openInlinePurchase(discussion, cost);
 }
 
 function applyComposerPayToSee(composer, cost) {
@@ -814,6 +847,23 @@ export const extend = [
 ];
 
 app.initializers.add('ziiven-pay-to-see', () => {
+  extendComponent(Discussion.prototype, 'badges', function (items) {
+    const cost = typeof this.pay2seeCost === 'function' ? this.pay2seeCost() : null;
+    if (!cost || Number(cost) <= 0) return;
+
+    items.add(
+      'pay2see',
+      <Badge
+        type="pay2see"
+        icon={app.forum.attribute('pay2seeContentBadge') || 'fas fa-dollar-sign'}
+        label={app.translator.trans('pay-to-see.forum.pay_to_see_badge')}
+      />,
+      5
+    );
+  });
+
+  document.addEventListener('click', handleInlinePurchaseClick);
+
   extendComponent('flarum/forum/components/NotificationGrid', 'notificationTypes', (items) => {
     items.add('pay2see', {
       name: 'pay2see',
