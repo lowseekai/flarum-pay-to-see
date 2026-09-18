@@ -89,6 +89,75 @@
   white-space: pre-wrap;
 }
 
+/* The textarea remains the serialized source for Flarum. When a pay block
+   exists, users edit the visual representation instead. */
+.Pay2SeeVisualEditor {
+  display: none;
+  min-height: 120px;
+  overflow-y: auto;
+  padding: 10px 0;
+  border: 0;
+  background: transparent;
+  white-space: normal;
+}
+
+.Pay2SeeVisualEditor--active {
+  display: block;
+}
+
+.Pay2SeeVisualEditor-source--hidden {
+  display: none !important;
+}
+
+.Pay2SeeVisualText {
+  min-height: 24px;
+  padding: 4px 0;
+  outline: none;
+  white-space: pre-wrap;
+}
+
+.Pay2SeeVisualText:empty:before {
+  content: attr(data-placeholder);
+  color: var(--muted-color);
+}
+
+.Pay2SeeVisualBlock {
+  margin: 8px 0;
+  border: 1px solid var(--primary-color);
+  border-radius: 6px;
+  background: var(--body-bg);
+  box-shadow: 0 1px 3px var(--shadow-color);
+}
+
+.Pay2SeeVisualBlock-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  color: var(--primary-color);
+  font-size: 13px;
+  font-weight: 700;
+  border-bottom: 1px solid var(--control-bg);
+  user-select: none;
+}
+
+.Pay2SeeVisualBlock-body {
+  min-height: 58px;
+  padding: 12px;
+  outline: none;
+  white-space: pre-wrap;
+}
+
+.Pay2SeeVisualBlock-body:empty:before {
+  content: attr(data-placeholder);
+  color: var(--muted-color);
+}
+
+.Pay2SeeVisualBlock-body:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
+}
+
 @media (max-width: 767px) {
   .Composer,
   .ComposerPage {

@@ -7,10 +7,11 @@ import FormModal from 'flarum/common/components/FormModal';
 import Modal from 'flarum/common/components/Modal';
 import Notification from 'flarum/forum/components/Notification';
 import TextEditorButton from 'flarum/common/components/TextEditorButton';
+import BasicEditorDriver from 'flarum/common/utils/BasicEditorDriver';
 import Discussion from 'flarum/common/models/Discussion';
 import Post from 'flarum/common/models/Post';
 import Stream from 'flarum/common/utils/Stream';
-import { extend as extendComponent } from 'flarum/common/extend';
+import { extend as extendComponent, override as overrideComponent } from 'flarum/common/extend';
 
 const apiUrl = () => `${app.forum.attribute('apiUrl')}`;
 const currencyShort = () => app.forum.attribute('pointSystem.points_short') || app.forum.attribute('pointSystem.currency_name') || '积分';
@@ -77,6 +78,457 @@ function decoratePayToSeePreview(root) {
 
     textNode.parentNode?.replaceChild(fragment, textNode);
   });
+}
+
+const PAY_TAG_PATTERN = /\[pay\]([\s\S]*?)\[\/pay\]/gi;
+
+function normalizeEditableText(element) {
+  return (element?.innerText || '').replace(/\r\n/g, '\n').replace(/\u200b/g, '').replace(/\n$/, '');
+}
+
+function parsePayToSeeParts(value) {
+  const parts = [];
+  let cursor = 0;
+  let match;
+
+  PAY_TAG_PATTERN.lastIndex = 0;
+
+  while ((match = PAY_TAG_PATTERN.exec(value || ''))) {
+    if (match.index > cursor) {
+      parts.push({ type: 'text', text: value.slice(cursor, match.index) });
+    }
+
+    parts.push({ type: 'pay', text: match[1] });
+    cursor = PAY_TAG_PATTERN.lastIndex;
+  }
+
+  if (cursor < (value || '').length) {
+    parts.push({ type: 'text', text: value.slice(cursor) });
+  }
+
+  return parts.length ? parts : [{ type: 'text', text: value || '' }];
+}
+
+function serializePayToSeeParts(parts) {
+  return parts
+    .map((part) => (part.type === 'pay' ? `[pay]${part.text || ''}[/pay]` : part.text || ''))
+    .join('');
+}
+
+class PayToSeeVisualEditorDriver extends BasicEditorDriver {
+  constructor(dom, params) {
+    super(dom, params);
+
+    this.params = params;
+    this.syncingFromVisual = false;
+    this.el.classList.add('Pay2SeeVisualEditor-source');
+    this.syncSourceSelection = this.syncSourceSelection.bind(this);
+    this.handleVisualKeydown = this.handleVisualKeydown.bind(this);
+
+    this.visual = document.createElement('div');
+    this.visual.className = 'FormControl Composer-flexible TextEditor-editor Pay2SeeVisualEditor';
+    this.visual.setAttribute('role', 'textbox');
+    this.visual.setAttribute('aria-multiline', 'true');
+    this.visual.addEventListener('keydown', this.handleVisualKeydown);
+    dom.insertBefore(this.visual, this.el);
+
+    this.el.addEventListener('input', () => {
+      if (this.syncingFromVisual || this.el.value === this.value) return;
+      this.value = this.el.value;
+      this.renderVisual();
+    });
+    document.addEventListener('selectionchange', this.syncSourceSelection);
+
+    this.value = params.value || '';
+    this.renderVisual();
+  }
+
+  partsFromVisual() {
+    return Array.from(this.visual.childNodes).map((node) => {
+      if (node.classList?.contains('Pay2SeeVisualBlock')) {
+        return { type: 'pay', text: normalizeEditableText(node.querySelector('.Pay2SeeVisualBlock-body')) };
+      }
+
+      return { type: 'text', text: normalizeEditableText(node) };
+    });
+  }
+
+  updateValueFromVisual() {
+    this.value = serializePayToSeeParts(this.partsFromVisual());
+    this.syncingFromVisual = true;
+    this.el.value = this.value;
+    this.el.dispatchEvent(new CustomEvent('input', { bubbles: true, cancelable: true }));
+    this.syncingFromVisual = false;
+    this.syncSourceSelection();
+  }
+
+  setParts(parts, focusPayIndex = null) {
+    this.value = serializePayToSeeParts(parts);
+    this.syncingFromVisual = true;
+    this.el.value = this.value;
+    this.el.dispatchEvent(new CustomEvent('input', { bubbles: true, cancelable: true }));
+    this.syncingFromVisual = false;
+    this.renderVisual(focusPayIndex);
+  }
+
+  makeEditableText(part, index) {
+    const block = document.createElement('div');
+    block.className = 'Pay2SeeVisualText';
+    block.contentEditable = String(!this.el.disabled);
+    block.dataset.partIndex = String(index);
+    block.dataset.placeholder = this.params.placeholder || '';
+    block.innerText = part.text || '';
+    block.addEventListener('input', () => this.updateValueFromVisual());
+    block.addEventListener('paste', this.handlePlainTextPaste.bind(this));
+    return block;
+  }
+
+  makePayBlock(part, payIndex) {
+    const block = document.createElement('div');
+    block.className = 'Pay2SeeVisualBlock';
+    block.dataset.payIndex = String(payIndex);
+
+    const header = document.createElement('div');
+    header.className = 'Pay2SeeVisualBlock-header';
+    header.contentEditable = 'false';
+    header.setAttribute('aria-hidden', 'true');
+    const icon = document.createElement('i');
+    icon.className = currencyIcon();
+    icon.setAttribute('aria-hidden', 'true');
+    const label = document.createElement('span');
+    label.textContent = '付费内容';
+    header.append(icon, label);
+
+    const body = document.createElement('div');
+    body.className = 'Pay2SeeVisualBlock-body';
+    body.contentEditable = String(!this.el.disabled);
+    body.dataset.placeholder = '在这里输入付费后可见的内容';
+    body.innerText = part.text || '';
+    body.addEventListener('input', () => this.updateValueFromVisual());
+    body.addEventListener('paste', this.handlePlainTextPaste.bind(this));
+
+    block.append(header, body);
+    return block;
+  }
+
+  renderVisual(focusPayIndex = null) {
+    const parts = parsePayToSeeParts(this.value);
+    let payIndex = 0;
+
+    this.visual.innerHTML = '';
+    parts.forEach((part, index) => {
+      if (part.type === 'pay') {
+        this.visual.append(this.makePayBlock(part, payIndex));
+        payIndex += 1;
+      } else {
+        this.visual.append(this.makeEditableText(part, index));
+      }
+    });
+
+    if (focusPayIndex !== null) {
+      const body = this.visual.querySelector(`.Pay2SeeVisualBlock[data-pay-index=\"${focusPayIndex}\"] .Pay2SeeVisualBlock-body`);
+      this.focusEditable(body);
+    }
+
+    const hasPayContent = parts.some((part) => part.type === 'pay');
+    this.el.classList.toggle('Pay2SeeVisualEditor-source--hidden', hasPayContent);
+    this.visual.classList.toggle('Pay2SeeVisualEditor--active', hasPayContent);
+  }
+
+  handlePlainTextPaste(event) {
+    event.preventDefault();
+    const text = event.clipboardData?.getData('text/plain') || '';
+
+    if (document.execCommand?.('insertText', false, text)) return;
+
+    const selection = window.getSelection();
+    if (!selection?.rangeCount) return;
+
+    const range = selection.getRangeAt(0);
+    range.deleteContents();
+    range.insertNode(document.createTextNode(text));
+    range.collapse(false);
+    this.updateValueFromVisual();
+  }
+
+  focusEditable(element) {
+    const target = element || this.visual.querySelector('[contenteditable=\"true\"]');
+    if (!target) return;
+
+    target.focus();
+    const range = document.createRange();
+    range.selectNodeContents(target);
+    range.collapse(false);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    this.syncSourceSelection();
+  }
+
+  focusEditableAtOffset(element, offset) {
+    if (!element) return;
+
+    element.focus();
+
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    let node = walker.nextNode();
+    let remaining = Math.max(0, offset);
+
+    while (node) {
+      if (remaining <= node.nodeValue.length) {
+        const range = document.createRange();
+        range.setStart(node, remaining);
+        range.collapse(true);
+
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        this.syncSourceSelection();
+        return;
+      }
+
+      remaining -= node.nodeValue.length;
+      node = walker.nextNode();
+    }
+
+    this.focusEditable(element);
+  }
+
+  selectedTextInEditable(editable, range) {
+    const beforeRange = range.cloneRange();
+    beforeRange.selectNodeContents(editable);
+    beforeRange.setEnd(range.startContainer, range.startOffset);
+    const start = beforeRange.toString().length;
+    const selected = range.toString();
+    return { start, end: start + selected.length, selected };
+  }
+
+  sourceOffsetForPoint(node, offset) {
+    const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+    const partElement = element?.closest?.('.Pay2SeeVisualText, .Pay2SeeVisualBlock');
+
+    if (!partElement || !this.visual.contains(partElement)) return null;
+
+    const topLevel = partElement.classList.contains('Pay2SeeVisualBlock')
+      ? partElement
+      : partElement;
+    const partIndex = Array.from(this.visual.children).indexOf(topLevel);
+    if (partIndex < 0) return null;
+
+    const parts = this.partsFromVisual();
+    let sourceOffset = 0;
+
+    for (let index = 0; index < partIndex; index += 1) {
+      sourceOffset += parts[index].type === 'pay' ? 11 + parts[index].text.length : parts[index].text.length;
+    }
+
+    const range = document.createRange();
+    const contentElement = topLevel.classList.contains('Pay2SeeVisualBlock')
+      ? topLevel.querySelector('.Pay2SeeVisualBlock-body')
+      : topLevel;
+
+    if (!contentElement || !contentElement.contains(node)) return null;
+
+    range.selectNodeContents(contentElement);
+    range.setEnd(node, offset);
+    sourceOffset += topLevel.classList.contains('Pay2SeeVisualBlock') ? 5 + range.toString().length : range.toString().length;
+
+    return sourceOffset;
+  }
+
+  syncSourceSelection() {
+    const selection = window.getSelection();
+    if (!selection?.rangeCount || !this.visual.contains(selection.anchorNode)) return;
+
+    const start = this.sourceOffsetForPoint(selection.anchorNode, selection.anchorOffset);
+    const end = this.sourceOffsetForPoint(selection.focusNode, selection.focusOffset);
+
+    if (start === null || end === null) return;
+
+    this.el.setSelectionRange(Math.min(start, end), Math.max(start, end));
+  }
+
+  visualSelection() {
+    const selection = window.getSelection();
+    if (!selection?.rangeCount || !this.visual.contains(selection.anchorNode)) return null;
+
+    const range = selection.getRangeAt(0);
+    const editable = range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
+      ? range.commonAncestorContainer.closest?.('.Pay2SeeVisualText')
+      : range.commonAncestorContainer.parentElement?.closest('.Pay2SeeVisualText');
+
+    if (!editable || !this.visual.contains(editable)) return null;
+
+    return {
+      editable,
+      range,
+      partIndex: Number(editable.dataset.partIndex || 0),
+    };
+  }
+
+  ensurePayBlock() {
+    const parts = parsePayToSeeParts(this.value);
+    const hasPayContent = parts.some((part) => part.type === 'pay');
+
+    if (!hasPayContent) {
+      const text = this.value || '';
+      const start = Math.max(0, this.el.selectionStart ?? text.length);
+      const end = Math.max(start, this.el.selectionEnd ?? start);
+
+      this.setParts([
+        { type: 'text', text: text.slice(0, start) },
+        { type: 'pay', text: text.slice(start, end) },
+        { type: 'text', text: text.slice(end) },
+      ], 0);
+      return;
+    }
+
+    const visualSelection = this.visualSelection();
+    if (visualSelection) {
+      const { editable, range, partIndex } = visualSelection;
+      const text = normalizeEditableText(editable);
+      const { start, end, selected } = this.selectedTextInEditable(editable, range);
+      const focusPayIndex = parts
+        .slice(0, partIndex)
+        .filter((part) => part.type === 'pay')
+        .length;
+      const replacement = [
+        { type: 'text', text: text.slice(0, start) },
+        { type: 'pay', text: selected },
+        { type: 'text', text: text.slice(end) },
+      ];
+
+      parts.splice(partIndex, 1, ...replacement);
+      this.setParts(parts, focusPayIndex);
+      return;
+    }
+
+    const existing = this.visual.querySelector('.Pay2SeeVisualBlock-body');
+    if (existing) {
+      this.focusEditable(existing);
+      return;
+    }
+
+    parts.push({ type: 'text', text: parts.length ? '\n\n' : '' }, { type: 'pay', text: '' });
+    this.setParts(parts, parts.filter((part) => part.type === 'pay').length - 1);
+  }
+  removePayBlocks() {
+    const parts = parsePayToSeeParts(this.value).filter((part) => part.type !== 'pay');
+    this.value = serializePayToSeeParts(parts);
+    this.syncingFromVisual = true;
+    this.el.value = this.value;
+    this.el.dispatchEvent(new CustomEvent('input', { bubbles: true, cancelable: true }));
+    this.syncingFromVisual = false;
+    this.renderVisual();
+    this.focus();
+  }
+
+  moveCursorTo(position) {
+    this.el.setSelectionRange(position, position);
+
+    if (this.visual.classList.contains('Pay2SeeVisualEditor--active')) {
+      this.focusSourceOffset(position);
+    }
+  }
+
+  getSelectionRange() {
+    return [this.el.selectionStart, this.el.selectionEnd];
+  }
+
+  getLastNChars(n) {
+    const cursor = this.el.selectionStart ?? this.value.length;
+    return this.el.value.slice(Math.max(0, cursor - n), cursor);
+  }
+
+  insertAtCursor(text) {
+    if (/^\[pay\][\s\S]*\[\/pay\]$/i.test(text)) {
+      this.ensurePayBlock();
+      return;
+    }
+
+    const [selectionStart, selectionEnd] = this.getSelectionRange();
+    this.insertBetween(selectionStart, selectionEnd, text);
+  }
+
+  insertAt(pos, text) {
+    this.insertBetween(pos, pos, text);
+  }
+
+  insertBetween(selectionStart, selectionEnd, text) {
+    const value = this.value || '';
+    this.value = value.slice(0, selectionStart) + text + value.slice(selectionEnd);
+    this.syncingFromVisual = true;
+    this.el.value = this.value;
+    this.el.dispatchEvent(new CustomEvent('input', { bubbles: true, cancelable: true }));
+    this.syncingFromVisual = false;
+    this.renderVisual();
+    this.el.setSelectionRange(selectionStart + text.length, selectionStart + text.length);
+
+    if (this.visual.classList.contains('Pay2SeeVisualEditor--active')) {
+      this.focusSourceOffset(selectionStart + text.length);
+    }
+  }
+
+  replaceBeforeCursor(start, text) {
+    this.insertBetween(start, this.el.selectionStart ?? this.value.length, text);
+  }
+
+  disabled(disabled) {
+    super.disabled(disabled);
+    this.visual?.querySelectorAll('[contenteditable]').forEach((element) => {
+      element.contentEditable = String(!disabled);
+    });
+  }
+
+  focus() {
+    if (!this.visual.classList.contains('Pay2SeeVisualEditor--active')) {
+      super.focus();
+      return;
+    }
+
+    this.focusEditable(document.activeElement?.closest?.('.Pay2SeeVisualEditor [contenteditable=\"true\"]'));
+  }
+
+  focusSourceOffset(offset) {
+    const parts = parsePayToSeeParts(this.value);
+    let sourceOffset = 0;
+    let payIndex = 0;
+
+    for (let index = 0; index < parts.length; index += 1) {
+      const part = parts[index];
+      const prefixLength = part.type === 'pay' ? 5 : 0;
+      const serializedLength = part.type === 'pay' ? 11 + part.text.length : part.text.length;
+      const position = Math.max(0, Math.min(offset - sourceOffset, serializedLength));
+      const element = part.type === 'pay'
+        ? this.visual.querySelector(`.Pay2SeeVisualBlock[data-pay-index="${payIndex}"] .Pay2SeeVisualBlock-body`)
+        : this.visual.querySelector(`.Pay2SeeVisualText[data-part-index="${index}"]`);
+
+      if (offset <= sourceOffset + serializedLength) {
+        this.focusEditableAtOffset(element, Math.max(0, position - prefixLength));
+        return;
+      }
+
+      sourceOffset += serializedLength;
+      if (part.type === 'pay') payIndex += 1;
+    }
+
+    const editables = this.visual.querySelectorAll('[contenteditable="true"]');
+    this.focusEditable(editables[editables.length - 1]);
+  }
+
+  handleVisualKeydown(event) {
+    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+      event.preventDefault();
+      this.params.onsubmit();
+    }
+  }
+
+  destroy() {
+    document.removeEventListener('selectionchange', this.syncSourceSelection);
+    this.visual?.removeEventListener('keydown', this.handleVisualKeydown);
+    this.visual?.remove();
+    super.destroy();
+  }
 }
 
 class PayToSeePriceModal extends Modal {
@@ -330,12 +782,28 @@ function purchaseDiscussion(discussion) {
     });
 }
 
-function payToSeeComposerButton(editor) {
-  editor.insertAtCursor('[pay][/pay]');
-  const selection = editor.getSelectionRange();
-  editor.moveCursorTo(Math.max(0, selection[1] - 6));
+function applyComposerPayToSee(composer, cost) {
+  if (cost < 0) {
+    composer.fields.pay2seeAmount(null);
+    composer.editor?.removePayBlocks?.();
+  } else {
+    composer.fields.pay2seeAmount(cost);
+    composer.editor?.ensurePayBlock?.();
+  }
+
+  m.redraw();
 }
 
+function openComposerPayToSeeModal(composer) {
+  const amount = composer.fields.pay2seeAmount?.();
+  const canRemove = amount !== null && amount !== undefined && Number(amount) > 0;
+
+  app.modal.show(PayToSeePriceModal, {
+    cost: amount,
+    canRemove,
+    onsubmit: (cost) => applyComposerPayToSee(composer, cost),
+  });
+}
 export const extend = [
   new Extend.Model(Discussion)
     .attribute('pay2seeCost')
@@ -355,13 +823,31 @@ app.initializers.add('ziiven-pay-to-see', () => {
   });
 
   extendComponent('flarum/common/components/TextEditor', 'toolbarItems', function (items) {
-    if (!app.forum.attribute('allowUsePay2See')) return;
+    if (!app.forum.attribute('allowUsePay2See') || !this.attrs.composer?.fields?.pay2seeAmount) return;
 
     items.add(
       'pay2see',
-      <TextEditorButton icon="fas fa-lock" title={app.translator.trans('pay-to-see.forum.toolbar_tooltip')} onclick={() => payToSeeComposerButton(this.attrs.composer.editor)} />,
+      <TextEditorButton
+        icon="fas fa-lock"
+        title={app.translator.trans('pay-to-see.forum.toolbar_tooltip')}
+        onclick={() => openComposerPayToSeeModal(this.attrs.composer)}
+      />,
       10
     );
+  });
+
+  overrideComponent('flarum/common/components/TextEditor', 'buildEditor', function (original, dom) {
+    if (!app.forum.attribute('allowUsePay2See') || !this.attrs.composer?.fields?.pay2seeAmount) return original(dom);
+
+    const params = this.buildEditorParams();
+    return new PayToSeeVisualEditorDriver(dom, params);
+  });
+  extendComponent('flarum/common/components/TextEditor', 'onbuild', function () {
+    if (!app.forum.attribute('allowUsePay2See')) return;
+    const amount = this.attrs.composer?.fields?.pay2seeAmount?.();
+    if (amount !== null && amount !== undefined && Number(amount) > 0) {
+      this.attrs.composer.editor?.ensurePayBlock?.();
+    }
   });
 
   extendComponent('flarum/forum/components/DiscussionComposer', 'oninit', function () {
@@ -405,15 +891,7 @@ app.initializers.add('ziiven-pay-to-see', () => {
         id="pay2seeButton"
         type="button"
         className="Button Button--ua-reset ComposerBody-pay2see"
-        onclick={() =>
-          app.modal.show(PayToSeePriceModal, {
-            cost: amount,
-            onsubmit: (cost) => {
-              this.composer.fields.pay2seeAmount(cost);
-              m.redraw();
-            },
-          })
-        }
+        onclick={() => openComposerPayToSeeModal(this.composer)}
       >
         <span className="TagLabel untagged Pay2SeeTagLabel">
           {hasAmount && <span id="payAmountSet">✅</span>}
