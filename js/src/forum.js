@@ -448,9 +448,14 @@ class PayToSeeVisualEditorDriver extends BasicEditorDriver {
   restoreSourceEditorLayout() {
     const editorContainer = this.el.closest('.TextEditor-editorContainer');
     const editor = this.el.closest('.TextEditor');
-    const composer = this.el.closest('.Composer');
+    const body = this.el.closest('.ComposerBody');
+    const bodyContent = this.el.closest('.ComposerBody-content');
+    const mentionsWrappers = [
+      ...(this.el.parentElement?.querySelectorAll('.ComposerBody-mentionsWrapper') || []),
+      ...(this.visual.parentElement?.querySelectorAll('.ComposerBody-mentionsWrapper') || []),
+    ];
 
-    [this.el, this.visual, editorContainer, editor, composer].forEach((element) => {
+    [this.el, this.visual, editorContainer, editor, body, bodyContent, ...mentionsWrappers].forEach((element) => {
       if (!element) return;
       element.style.removeProperty('height');
       element.style.removeProperty('max-height');
@@ -463,6 +468,7 @@ class PayToSeeVisualEditorDriver extends BasicEditorDriver {
     this.el.closest('.ComposerBody-mentionsWrapper')?.classList.remove('Pay2SeeVisualEditor-wrapper--inactive');
 
     m.redraw();
+    requestAnimationFrame(() => m.redraw());
   }
 
   moveCursorTo(position) {
