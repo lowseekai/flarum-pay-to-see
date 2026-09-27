@@ -441,7 +441,28 @@ class PayToSeeVisualEditorDriver extends BasicEditorDriver {
     this.el.dispatchEvent(new CustomEvent('input', { bubbles: true, cancelable: true }));
     this.syncingFromVisual = false;
     this.renderVisual();
+    this.restoreSourceEditorLayout();
     this.focus();
+  }
+
+  restoreSourceEditorLayout() {
+    const editorContainer = this.el.closest('.TextEditor-editorContainer');
+    const editor = this.el.closest('.TextEditor');
+    const composer = this.el.closest('.Composer');
+
+    [this.el, this.visual, editorContainer, editor, composer].forEach((element) => {
+      if (!element) return;
+      element.style.removeProperty('height');
+      element.style.removeProperty('max-height');
+      element.style.removeProperty('min-height');
+    });
+
+    this.el.classList.remove('Pay2SeeVisualEditor-source--hidden');
+    this.visual.classList.remove('Pay2SeeVisualEditor--active', 'Composer-flexible');
+    this.visual.classList.add('Pay2SeeVisualEditor-wrapper--inactive');
+    this.el.closest('.ComposerBody-mentionsWrapper')?.classList.remove('Pay2SeeVisualEditor-wrapper--inactive');
+
+    m.redraw();
   }
 
   moveCursorTo(position) {
