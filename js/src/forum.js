@@ -251,9 +251,14 @@ class PayToSeeVisualEditorDriver extends BasicEditorDriver {
   syncEditorWrappers(hasPayContent) {
     const visualWrapper = this.visual.closest('.ComposerBody-mentionsWrapper');
     const sourceWrapper = this.el.closest('.ComposerBody-mentionsWrapper');
+    const wrappers = [...new Set([visualWrapper, sourceWrapper].filter(Boolean))];
 
-    visualWrapper?.classList.toggle('Pay2SeeVisualEditor-wrapper--inactive', !hasPayContent);
-    sourceWrapper?.classList.toggle('Pay2SeeVisualEditor-wrapper--inactive', hasPayContent);
+    // The split-view extension can put both editors in the same wrapper. The
+    // wrapper must remain visible while the selected editor is hidden itself.
+    wrappers.forEach((wrapper) => {
+      wrapper.classList.toggle('Pay2SeeVisualEditor-wrapper--inactive', false);
+      wrapper.classList.toggle('Split-view-editorWrapper--inactive', false);
+    });
   }
 
   handlePlainTextPaste(event) {
@@ -464,8 +469,9 @@ class PayToSeeVisualEditorDriver extends BasicEditorDriver {
 
     this.el.classList.remove('Pay2SeeVisualEditor-source--hidden');
     this.visual.classList.remove('Pay2SeeVisualEditor--active', 'Composer-flexible');
-    this.visual.classList.add('Pay2SeeVisualEditor-wrapper--inactive');
-    this.el.closest('.ComposerBody-mentionsWrapper')?.classList.remove('Pay2SeeVisualEditor-wrapper--inactive');
+    [this.visual.closest('.ComposerBody-mentionsWrapper'), this.el.closest('.ComposerBody-mentionsWrapper')]
+      .filter(Boolean)
+      .forEach((wrapper) => wrapper.classList.remove('Pay2SeeVisualEditor-wrapper--inactive', 'Split-view-editorWrapper--inactive'));
 
     m.redraw();
     requestAnimationFrame(() => m.redraw());
