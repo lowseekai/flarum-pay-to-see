@@ -5,7 +5,7 @@
     "license": "proprietary",
     "require": {
         "flarum/core": "^2.0.0-rc.8 || ^2.0.0",
-        "ramon/point-system": "dev-main"
+        "ramon/point-system": "^1.3.3"
     },
     "support": {
         "issues": "https://ziven.flarum.cloud/d/6-pay-to-see-fu-fei-ke-jian-nei-rong"
